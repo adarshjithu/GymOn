@@ -51,79 +51,107 @@ const extractFacilities = (item: any): string[] => {
   return list;
 };
 
+const DUMMY_GYMS: GymItem[] = [
+  {
+    id: "1",
+    name: "Gold's Gym Express",
+    location: "Kakkanad, Kochi",
+    rating: 4.8,
+    reviewsCount: 184,
+    distance: "1.2 km away",
+    price: 199,
+    image:
+      "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80",
+    isVerified: true,
+    facilities: ["ladies only", "AC", "Personal Trainer", "Steam Bath"],
+  },
+  {
+    id: "2",
+    name: "Powerhouse Fitness Club",
+    location: "Palarivattom, Kochi",
+    rating: 4.6,
+    reviewsCount: 142,
+    distance: "2.4 km away",
+    price: 149,
+    image:
+      "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&w=600&q=80",
+    isVerified: true,
+    facilities: ["Cardio Zone", "Crossfit", "Parking", "Locker Room"],
+  },
+  {
+    id: "3",
+    name: "Iron Paradise Gym",
+    location: "Edappally, Kochi",
+    rating: 4.9,
+    reviewsCount: 210,
+    distance: "3.1 km away",
+    price: 180,
+    image:
+      "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=600&q=80",
+    isVerified: true,
+    facilities: ["Heavy Weights", "Open 24/7", "Shower", "Cardio"],
+  },
+  {
+    id: "4",
+    name: "Urban Muscle Studio",
+    location: "MG Road, Kochi",
+    rating: 4.7,
+    reviewsCount: 95,
+    distance: "3.8 km away",
+    price: 150,
+    image:
+      "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=600&q=80",
+    isVerified: true,
+    facilities: ["Yoga Studio", "AC", "Zumba", "Juice Bar"],
+  },
+];
+
 export default function FeaturedGyms() {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
-  const [gyms, setGyms] = useState<GymItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [gyms, setGyms] = useState<GymItem[]>(DUMMY_GYMS);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const fetchGyms = async (latitude?: number, longitude?: number) => {
-    try {
-      setLoading(true);
-      const res = await getNearbyGyms({ latitude, longitude, limit: 4 });
-
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        const formatted: GymItem[] = res.data.map((item: any, idx: number) => ({
-          id: item._id || item.id || String(idx + 1),
-          name: item.gymName || item.name || "Gym",
-          location: item.address || item.city || "Near You",
-          rating: item.rating || 4.7,
-          reviewsCount: item.reviewsCount || 100 + idx * 15,
-          distance: item.distance || `${(1.2 + idx * 0.5).toFixed(1)} km`,
-          price: item.dayPassPrice || item.price || 150,
-          image:
-            item.photos && item.photos.length > 0
-              ? item.photos[0]
-              : DEFAULT_FALLBACK_IMAGE,
-          isVerified: item.isApproved !== undefined ? item.isApproved : true,
-          facilities: extractFacilities(item),
-        }));
-        setGyms(formatted);
-      } else {
-        setGyms([]);
-      }
-    } catch (err) {
-      console.error("Error loading nearby gyms:", err);
-      setGyms([]);
-    } finally {
+    // API call paused for local testing:
+    // try {
+    //   setLoading(true);
+    //   const res = await getNearbyGyms({ latitude, longitude, limit: 4 });
+    //   ...
+    // } catch (err) { ... }
+    setLoading(true);
+    setTimeout(() => {
+      setGyms(DUMMY_GYMS);
       setLoading(false);
-    }
+    }, 200);
   };
 
   const fetchGymsBySearch = async (query: string) => {
-    try {
-      setLoading(true);
-      const res = await getGyms({ q: query, limit: 4 });
-
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        const formatted: GymItem[] = res.data.map((item: any, idx: number) => ({
-          id: item._id || item.id || String(idx + 1),
-          name: item.gymName || item.name || "Gym",
-          location: item.address || item.city || "Near You",
-          rating: item.rating || 4.7,
-          reviewsCount: item.reviewsCount || 100 + idx * 15,
-          distance: item.distance || `${(1.2 + idx * 0.5).toFixed(1)} km`,
-          price: item.dayPassPrice || item.price || 150,
-          image:
-            item.photos && item.photos.length > 0
-              ? item.photos[0]
-              : DEFAULT_FALLBACK_IMAGE,
-          isVerified: item.isApproved !== undefined ? item.isApproved : true,
-          facilities: extractFacilities(item),
-        }));
-        setGyms(formatted);
+    // API call paused for local testing:
+    // try {
+    //   setLoading(true);
+    //   const res = await getGyms({ q: query, limit: 4 });
+    //   ...
+    // } catch (err) { ... }
+    setLoading(true);
+    setTimeout(() => {
+      const q = query.toLowerCase().trim();
+      if (!q) {
+        setGyms(DUMMY_GYMS);
       } else {
-        setGyms([]);
+        const filtered = DUMMY_GYMS.filter(
+          (item) =>
+            item.name.toLowerCase().includes(q) ||
+            item.location.toLowerCase().includes(q) ||
+            item.facilities.some((f) => f.toLowerCase().includes(q))
+        );
+        setGyms(filtered);
       }
-    } catch (err) {
-      console.error("Error searching gyms:", err);
-      setGyms([]);
-    } finally {
       setLoading(false);
-    }
+    }, 200);
   };
 
   useEffect(() => {
