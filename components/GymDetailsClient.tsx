@@ -1,103 +1,112 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
   ArrowLeft,
   Star,
   MapPin,
-  Footprints,
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
   Check,
   CheckCircle2,
   ArrowRight,
-  Wind,
-  Car,
-  ShowerHead,
-  Lock,
-  Activity,
-  Dumbbell,
-  Users,
-  Plus,
   Info,
-  Calendar,
-  UserCheck,
-  Maximize2,
-  Music,
   ExternalLink,
   X,
   Share2,
   Heart,
   Phone,
-  CheckCircle,
   Clock,
+  Calendar,
+  Dumbbell,
+  Footprints,
 } from "lucide-react";
-
-const GALLERY_IMAGES = [
-  "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80",
-  "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1574680096145-d05b474e2155?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1593079831268-3381b0db4a77?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1596357395217-80de13130e92?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=800&q=80",
-  "https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?auto=format&fit=crop&w=800&q=80",
-];
-
-const SIMILAR_GYMS = [
-  {
-    id: "2",
-    name: "FitHub Kochi",
-    rating: 4.7,
-    reviews: 96,
-    distance: "2.1 km away",
-    price: 200,
-    image:
-      "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&w=600&q=80",
-    isVerified: true,
-  },
-  {
-    id: "3",
-    name: "Body Form Gym",
-    rating: 4.5,
-    reviews: 73,
-    distance: "2.6 km away",
-    price: 120,
-    image:
-      "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80",
-    isVerified: true,
-  },
-  {
-    id: "4",
-    name: "PowerZone Fitness",
-    rating: 4.6,
-    reviews: 54,
-    distance: "3.3 km away",
-    price: 180,
-    image:
-      "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=600&q=80",
-    isVerified: true,
-  },
-];
+import { getNearbyGyms, getGyms } from "@/app/api/client/gymApi";
 
 interface GymDetailsClientProps {
   gymId?: string;
+  gym?: any;
+  similarGyms?: any[];
 }
 
-export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps) {
+const DEFAULT_GYM_IMAGES = [
+  "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80",
+];
+
+const FALLBACK_SIMILAR_GYMS = [
+  {
+    id: "fit-hub-kochi",
+    gymName: "FitHub Kochi",
+    photos: ["https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80"],
+    rating: 4.7,
+    reviewsCount: 96,
+    distance: "2.1 km away",
+    dayPassPrice: 200,
+    isApproved: true,
+  },
+  {
+    id: "body-form-gym",
+    gymName: "Body Form Gym",
+    photos: ["https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&w=800&q=80"],
+    rating: 4.5,
+    reviewsCount: 73,
+    distance: "2.6 km away",
+    dayPassPrice: 120,
+    isApproved: true,
+  },
+  {
+    id: "powerzone-fitness",
+    gymName: "PowerZone Fitness",
+    photos: ["https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80"],
+    rating: 4.6,
+    reviewsCount: 54,
+    distance: "3.3 km away",
+    dayPassPrice: 180,
+    isApproved: true,
+  },
+];
+
+export default function GymDetailsClient({ gymId = "1", gym, similarGyms: initialSimilarGyms = [] }: GymDetailsClientProps) {
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<1 | 2>(1);
   const [isSaved, setIsSaved] = useState(false);
-  const [showMoreFacilities, setShowMoreFacilities] = useState(false);
+  const [similarGymsList, setSimilarGymsList] = useState<any[]>(initialSimilarGyms);
+
+  useEffect(() => {
+    let combined = [...(initialSimilarGyms || [])];
+
+    // If initialSimilarGyms has fewer than 3 items, fill missing slots with fallback gyms
+    if (combined.length < 3) {
+      const missing = FALLBACK_SIMILAR_GYMS.filter(
+        (fb) => !combined.some((c: any) => (c._id || c.id)?.toString() === fb.id)
+      );
+      combined = [...combined, ...missing].slice(0, 3);
+    }
+
+    setSimilarGymsList(combined);
+  }, [initialSimilarGyms, gymId, gym]);
+
+  // Dynamic values extracted from server gym object
+  const gymName = gym?.gymName || gym?.name || "Gym Details";
+  const address = gym?.address || "";
+  const city = gym?.city || "";
+  const fullLocation = [address, city].filter(Boolean).join(", ");
+  const dayPassPrice = gym?.dayPassPrice ?? gym?.price ?? 0;
+  const description = gym?.description || "No description provided for this gym.";
+  const phoneNumber = gym?.phoneNumber || "";
+  const rating = gym?.rating ?? 4.5;
+  const reviewsCount = gym?.reviewsCount ?? 0;
+  const isVerified = gym?.isApproved !== undefined ? gym?.isApproved : true;
+  const isOpen = gym?.isActive !== undefined ? gym?.isActive : true;
+
+  const galleryImages = gym?.photos && gym.photos.length > 0 ? gym.photos : DEFAULT_GYM_IMAGES;
+  const facilitiesList: string[] = gym?.facilities || [];
+  const openingHours = gym?.openingHours || [];
 
   // Form states & validation for Request for Entry
   const [requestDate, setRequestDate] = useState("");
@@ -123,22 +132,14 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
 
   const prevImage = () => {
     setCurrentImageIdx((prev) =>
-      prev === 0 ? GALLERY_IMAGES.length - 1 : prev - 1
+      prev === 0 ? galleryImages.length - 1 : prev - 1
     );
   };
 
   const nextImage = () => {
     setCurrentImageIdx((prev) =>
-      prev === GALLERY_IMAGES.length - 1 ? 0 : prev + 1
+      prev === galleryImages.length - 1 ? 0 : prev + 1
     );
-  };
-
-  const openModal = () => {
-    setIsModalOpen(true);
-    setModalStep(1);
-    if (!requestDate) {
-      setRequestDate(getTodayString());
-    }
   };
 
   const handleStep1Submit = (e: React.FormEvent) => {
@@ -178,18 +179,20 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
   const handleOpenWhatsApp = () => {
     const formattedDate = requestDate
       ? new Date(requestDate).toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        })
-      : "25 May 2025";
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+      : "Today";
 
     const timeStr = requestTime || "6:00 PM";
+    const cleanPhone = phoneNumber.replace(/\D/g, "");
+    const targetPhone = cleanPhone.length >= 10 ? cleanPhone : "919876543210";
 
-    const messageText = `Hello,\n\nI found your gym on GYM ON.\nI'd like to request a Day Pass.\n\n📅 Date: ${formattedDate}\n⏰ Time: ${timeStr}\n💰 Day Pass Price: ₹150\n\nI will pay at the gym.\nPlease confirm whether entry is available.\n\nName: ${userName}\nMobile: +91 ${userPhone}`;
+    const messageText = `Hello,\n\nI found your gym (${gymName}) on GYM ON.\nI'd like to request a Day Pass.\n\n📅 Date: ${formattedDate}\n⏰ Time: ${timeStr}\n💰 Day Pass Price: ₹${dayPassPrice}\n\nI will pay at the gym.\nPlease confirm whether entry is available.\n\nName: ${userName}\nMobile: +91 ${userPhone}`;
 
     const encodedText = encodeURIComponent(messageText);
-    window.open(`https://api.whatsapp.com/send?phone=919876543210&text=${encodedText}`, "_blank");
+    window.open(`https://api.whatsapp.com/send?phone=${targetPhone}&text=${encodedText}`, "_blank");
   };
 
   const closeModal = () => {
@@ -201,7 +204,7 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
   return (
     <div className="bg-[#f8fafc] min-h-screen text-slate-900 pb-28 pt-6">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Top Back Navigation Bar */}
         <div className="flex items-center justify-between mb-4">
           <Link
@@ -219,16 +222,15 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
               title="Save to favorites"
             >
               <Heart
-                className={`w-3.5 h-3.5 ${
-                  isSaved ? "fill-rose-500 text-rose-500" : "text-slate-400"
-                }`}
+                className={`w-3.5 h-3.5 ${isSaved ? "fill-rose-500 text-rose-500" : "text-slate-400"
+                  }`}
               />
               <span>{isSaved ? "Saved" : "Save"}</span>
             </button>
             <button
               onClick={() => {
                 if (navigator.share) {
-                  navigator.share({ title: "Iron Fitness", url: window.location.href });
+                  navigator.share({ title: gymName, url: window.location.href });
                 } else {
                   navigator.clipboard.writeText(window.location.href);
                   alert("Link copied to clipboard!");
@@ -247,123 +249,133 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
         <div className="space-y-2 mb-6">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-              Iron Fitness
+              {gymName}
             </h1>
-            <span className="inline-flex items-center gap-1 bg-[#0f172a] text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-sm">
-              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400/20" />
-              Verified
-            </span>
+            {isVerified && (
+              <span className="inline-flex items-center gap-1 bg-[#0f172a] text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-sm">
+                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400/20" />
+                Verified
+              </span>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-slate-600 font-medium">
             <span className="flex items-center gap-1 text-slate-900 font-bold">
               <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-              4.6
-              <span className="text-slate-500 font-normal">(128 Reviews)</span>
+              {rating}
+              <span className="text-slate-500 font-normal">({reviewsCount} Reviews)</span>
             </span>
-            <span className="text-slate-300">|</span>
-            <span className="flex items-center gap-1">
-              <MapPin className="w-4 h-4 text-slate-400" />
-              Kakkanad, Kochi
-            </span>
-            <span className="text-slate-300">|</span>
-            <span className="flex items-center gap-1">
-              <Footprints className="w-4 h-4 text-slate-400" />
-              1.2 km
-            </span>
+            {fullLocation && (
+              <>
+                <span className="text-slate-300">|</span>
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-4 h-4 text-slate-400" />
+                  {fullLocation}
+                </span>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-sm pt-1">
-            <span className="flex items-center gap-1.5 font-bold text-emerald-600">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              Open Now
-            </span>
-            <span className="text-slate-400">•</span>
-            <span className="text-slate-500 font-medium">Closes at 10:30 PM</span>
+            {isOpen ? (
+              <span className="flex items-center gap-1.5 font-bold text-emerald-600">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                Open Now
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 font-bold text-rose-600">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                Closed
+              </span>
+            )}
           </div>
         </div>
 
         {/* Gallery & Booking Box Layout (12 cols grid) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
+
           {/* Main Gallery Area (8 Columns) */}
           <div className="lg:col-span-8 space-y-3">
             {/* Main Stage Image */}
             <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden shadow-md group bg-slate-900">
               <Image
-                src={GALLERY_IMAGES[currentImageIdx]}
-                alt="Gym Interior"
+                src={galleryImages[currentImageIdx] || galleryImages[0]}
+                alt={gymName}
                 fill
                 priority
                 className="object-cover transition-all duration-300 cursor-pointer"
                 onClick={() => setIsLightboxOpen(true)}
               />
 
-              {/* Prev Arrow Button */}
-              <button
-                onClick={prevImage}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 hover:bg-white text-slate-800 flex items-center justify-center shadow-lg transition-all transform hover:scale-105 cursor-pointer z-10"
-                aria-label="Previous image"
-              >
-                <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
-              </button>
+              {galleryImages.length > 1 && (
+                <>
+                  <button
+                    onClick={prevImage}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 hover:bg-white text-slate-800 flex items-center justify-center shadow-lg transition-all transform hover:scale-105 cursor-pointer z-10"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+                  </button>
 
-              {/* Next Arrow Button */}
-              <button
-                onClick={nextImage}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 hover:bg-white text-slate-800 flex items-center justify-center shadow-lg transition-all transform hover:scale-105 cursor-pointer z-10"
-                aria-label="Next image"
-              >
-                <ChevronRight className="w-5 h-5 stroke-[2.5]" />
-              </button>
+                  <button
+                    onClick={nextImage}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 hover:bg-white text-slate-800 flex items-center justify-center shadow-lg transition-all transform hover:scale-105 cursor-pointer z-10"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+                  </button>
+                </>
+              )}
 
               {/* Counter Badge */}
               <div
                 onClick={() => setIsLightboxOpen(true)}
                 className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/75 backdrop-blur-md text-white text-xs font-semibold px-3.5 py-1.5 rounded-full cursor-pointer hover:bg-black/90 transition shadow-md"
               >
-                {currentImageIdx + 1} / {GALLERY_IMAGES.length}
+                {currentImageIdx + 1} / {galleryImages.length}
               </div>
             </div>
 
-            {/* Thumbnail Navigation Strip (6 Boxes) */}
-            <div className="grid grid-cols-6 gap-2 sm:gap-3">
-              {GALLERY_IMAGES.slice(0, 5).map((imgUrl, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => setCurrentImageIdx(idx)}
-                  className={`relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${
-                    currentImageIdx === idx
-                      ? "border-cyan-500 ring-2 ring-cyan-400/40 opacity-100 scale-[0.98]"
-                      : "border-transparent opacity-75 hover:opacity-100"
-                  }`}
-                >
-                  <Image
-                    src={imgUrl}
-                    alt={`Thumbnail ${idx + 1}`}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              ))}
+            {/* Thumbnail Navigation Strip */}
+            {galleryImages.length > 1 && (
+              <div className="grid grid-cols-6 gap-2 sm:gap-3">
+                {galleryImages.slice(0, 5).map((imgUrl: string, idx: number) => (
+                  <div
+                    key={idx}
+                    onClick={() => setCurrentImageIdx(idx)}
+                    className={`relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer border-2 transition-all ${currentImageIdx === idx
+                        ? "border-cyan-500 ring-2 ring-cyan-400/40 opacity-100 scale-[0.98]"
+                        : "border-transparent opacity-75 hover:opacity-100"
+                      }`}
+                  >
+                    <Image
+                      src={imgUrl}
+                      alt={`Thumbnail ${idx + 1}`}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ))}
 
-              {/* 6th Box: +8 More Overlay */}
-              <div
-                onClick={() => setIsLightboxOpen(true)}
-                className="relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer border-2 border-transparent group"
-              >
-                <Image
-                  src={GALLERY_IMAGES[5]}
-                  alt="More photos"
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-[2px] flex flex-col items-center justify-center text-white cursor-pointer group-hover:bg-slate-950/85 transition">
-                  <span className="text-base font-extrabold tracking-tight">+8</span>
-                  <span className="text-[11px] font-medium text-slate-300 -mt-0.5">More</span>
-                </div>
+                {galleryImages.length > 5 && (
+                  <div
+                    onClick={() => setIsLightboxOpen(true)}
+                    className="relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer border-2 border-transparent group"
+                  >
+                    <Image
+                      src={galleryImages[5]}
+                      alt="More photos"
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-[2px] flex flex-col items-center justify-center text-white cursor-pointer group-hover:bg-slate-950/85 transition">
+                      <span className="text-base font-extrabold tracking-tight">+{galleryImages.length - 5}</span>
+                      <span className="text-[11px] font-medium text-slate-300 -mt-0.5">More</span>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right Booking Card (4 Columns, Sticky) */}
@@ -373,7 +385,7 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
               <div>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-                    ₹150
+                    ₹{dayPassPrice}
                   </span>
                   <span className="text-slate-500 font-medium text-base">/ Entry</span>
                 </div>
@@ -419,17 +431,17 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
 
         </div>
 
-        {/* Content Details Grid (About, Facilities, Opening Hours, Add'l Info, Location) */}
+        {/* Content Details Grid (About, Facilities, Opening Hours, Location) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-          
-          {/* About Iron Fitness */}
+
+          {/* About Gym */}
           <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm flex flex-col justify-between">
             <div>
               <h2 className="text-xl font-bold text-slate-900 mb-3">
-                About Iron Fitness
+                About {gymName}
               </h2>
               <p className="text-slate-600 text-sm leading-relaxed font-normal">
-                Iron Fitness is a premium fitness studio in Kakkanad, Kochi. We offer state-of-the-art equipment, certified trainers and a clean, comfortable environment to help you achieve your fitness goals.
+                {description}
               </p>
             </div>
           </div>
@@ -437,92 +449,49 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
           {/* Facilities */}
           <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
             <h2 className="text-xl font-bold text-slate-900 mb-4">Facilities</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              
-              <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:border-slate-200 transition text-center gap-1.5">
-                <Wind className="w-5 h-5 text-cyan-600" />
-                <span className="text-xs font-semibold text-slate-700">AC</span>
+            {facilitiesList.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {facilitiesList.map((facility: string, idx: number) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2.5 p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:border-slate-200 transition text-slate-700 text-xs font-semibold"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-[#009fb7] shrink-0" />
+                    <span className="truncate">{facility}</span>
+                  </div>
+                ))}
               </div>
-
-              <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:border-slate-200 transition text-center gap-1.5">
-                <Car className="w-5 h-5 text-cyan-600" />
-                <span className="text-xs font-semibold text-slate-700">Parking</span>
-              </div>
-
-              <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:border-slate-200 transition text-center gap-1.5">
-                <ShowerHead className="w-5 h-5 text-cyan-600" />
-                <span className="text-xs font-semibold text-slate-700">Shower</span>
-              </div>
-
-              <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:border-slate-200 transition text-center gap-1.5">
-                <Lock className="w-5 h-5 text-cyan-600" />
-                <span className="text-xs font-semibold text-slate-700">Locker</span>
-              </div>
-
-              <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:border-slate-200 transition text-center gap-1.5">
-                <Activity className="w-5 h-5 text-cyan-600" />
-                <span className="text-xs font-semibold text-slate-700">Cardio Machines</span>
-              </div>
-
-              <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:border-slate-200 transition text-center gap-1.5">
-                <Dumbbell className="w-5 h-5 text-cyan-600" />
-                <span className="text-xs font-semibold text-slate-700">Strength Equipment</span>
-              </div>
-
-              <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:border-slate-200 transition text-center gap-1.5">
-                <Users className="w-5 h-5 text-cyan-600" />
-                <span className="text-xs font-semibold text-slate-700">Changing Room</span>
-              </div>
-
-              <button
-                onClick={() => setShowMoreFacilities(!showMoreFacilities)}
-                className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-center gap-1 cursor-pointer"
-              >
-                <span className="text-base font-bold text-slate-900">
-                  {showMoreFacilities ? "-4" : "+4"}
-                </span>
-                <span className="text-xs font-semibold text-slate-600">
-                  {showMoreFacilities ? "Less" : "More"}
-                </span>
-              </button>
-
-            </div>
-
-            {showMoreFacilities && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 pt-3 border-t border-slate-100 animate-fadeIn">
-                <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 bg-slate-50/50 text-center gap-1.5">
-                  <span className="text-xs font-semibold text-slate-700">Steam Bath</span>
-                </div>
-                <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 bg-slate-50/50 text-center gap-1.5">
-                  <span className="text-xs font-semibold text-slate-700">Personal Trainer</span>
-                </div>
-                <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 bg-slate-50/50 text-center gap-1.5">
-                  <span className="text-xs font-semibold text-slate-700">Protein Bar</span>
-                </div>
-                <div className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 bg-slate-50/50 text-center gap-1.5">
-                  <span className="text-xs font-semibold text-slate-700">Free Wi-Fi</span>
-                </div>
-              </div>
+            ) : (
+              <p className="text-slate-500 text-sm font-medium">No facility information provided.</p>
             )}
           </div>
 
           {/* Opening Hours */}
           <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
             <h2 className="text-xl font-bold text-slate-900 mb-4">Opening Hours</h2>
-            <div className="space-y-3 text-sm font-medium">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <span className="text-slate-700">Monday - Friday</span>
-                <span className="text-slate-900 font-bold">5:30 AM - 10:30 PM</span>
+            {openingHours.length > 0 ? (
+              <div className="space-y-3 text-sm font-medium">
+                {openingHours.map((oh: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between pb-2 border-b border-slate-100 last:border-b-0">
+                    <span className="text-slate-700 capitalize">{oh.day}</span>
+                    <span className="text-slate-900 font-bold">
+                      {oh.isClosed ? "Closed" : `${oh.open} - ${oh.close}`}
+                    </span>
+                  </div>
+                ))}
               </div>
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <span className="text-slate-700">Saturday</span>
-                <span className="text-slate-900 font-bold">6:00 AM - 10:00 PM</span>
+            ) : (
+              <div className="space-y-3 text-sm font-medium">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <span className="text-slate-700">Monday - Saturday</span>
+                  <span className="text-slate-900 font-bold">6:00 AM - 10:00 PM</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-700">Sunday</span>
+                  <span className="text-slate-900 font-bold">6:00 AM - 8:00 PM</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-700">Sunday</span>
-                <span className="text-slate-900 font-bold">6:00 AM - 9:00 PM</span>
-              </div>
-            </div>
+            )}
 
             <div className="mt-5 bg-[#f0f9ff] border border-sky-100 rounded-xl p-3.5 flex items-center gap-3 text-xs font-medium text-slate-700">
               <Info className="w-4 h-4 text-cyan-600 shrink-0" />
@@ -536,24 +505,26 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
               Additional Information
             </h2>
             <div className="grid grid-cols-2 gap-y-5 gap-x-6">
-              
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-slate-100 text-slate-700 mt-0.5">
-                  <Calendar className="w-4 h-4" />
+
+              {phoneNumber && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-slate-100 text-slate-700 mt-0.5">
+                    <Phone className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500 font-medium">Phone</div>
+                    <div className="text-sm font-bold text-slate-900">{phoneNumber}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-xs text-slate-500 font-medium">Established</div>
-                  <div className="text-sm font-bold text-slate-900">2018</div>
-                </div>
-              </div>
+              )}
 
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-slate-100 text-slate-700 mt-0.5">
-                  <UserCheck className="w-4 h-4" />
+                  <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs text-slate-500 font-medium">Certified Trainers</div>
-                  <div className="text-sm font-bold text-slate-900">5</div>
+                  <div className="text-xs text-slate-500 font-medium">Verification Status</div>
+                  <div className="text-sm font-bold text-slate-900">{isVerified ? "Verified" : "Pending"}</div>
                 </div>
               </div>
 
@@ -562,38 +533,18 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
                   <Dumbbell className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs text-slate-500 font-medium">Gym Type</div>
-                  <div className="text-sm font-bold text-slate-900">Unisex</div>
+                  <div className="text-xs text-slate-500 font-medium">Day Pass Price</div>
+                  <div className="text-sm font-bold text-slate-900">₹{dayPassPrice}</div>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-slate-100 text-slate-700 mt-0.5">
-                  <Users className="w-4 h-4" />
+                  <MapPin className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs text-slate-500 font-medium">Crowd Level</div>
-                  <div className="text-sm font-bold text-slate-900">Moderate</div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-slate-100 text-slate-700 mt-0.5">
-                  <Maximize2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs text-slate-500 font-medium">Area</div>
-                  <div className="text-sm font-bold text-slate-900">3500 sq.ft.</div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-slate-100 text-slate-700 mt-0.5">
-                  <Music className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs text-slate-500 font-medium">Music</div>
-                  <div className="text-sm font-bold text-slate-900">Yes</div>
+                  <div className="text-xs text-slate-500 font-medium">City</div>
+                  <div className="text-sm font-bold text-slate-900">{city || "N/A"}</div>
                 </div>
               </div>
 
@@ -604,13 +555,13 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
           <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm col-span-1 lg:col-span-2">
             <h2 className="text-xl font-bold text-slate-900 mb-4">Location</h2>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-              
+
               <div className="md:col-span-5 space-y-4">
                 <p className="text-sm font-medium text-slate-700 leading-relaxed">
-                  Iron Fitness, 2nd Floor, DD Tower, Kakkanad, Kochi, Kerala 682030
+                  {gymName}{fullLocation ? `, ${fullLocation}` : ""}
                 </p>
                 <a
-                  href="https://maps.google.com/?q=Iron+Fitness+Kakkanad"
+                  href={`https://maps.google.com/?q=${encodeURIComponent(`${gymName} ${fullLocation}`)}`}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-800 font-bold text-sm transition-all cursor-pointer shadow-sm group"
@@ -623,7 +574,6 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
 
               {/* Map Canvas Mockup */}
               <div className="md:col-span-7 relative h-52 sm:h-60 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-inner">
-                {/* Simulated Map Visual */}
                 <div
                   className="absolute inset-0 bg-cover bg-center opacity-85"
                   style={{
@@ -631,26 +581,12 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
                   }}
                 />
                 <div className="absolute inset-0 bg-slate-900/10 backdrop-blur-[1px]" />
-                
-                {/* Simulated Map Labels */}
-                <div className="absolute top-4 left-6 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 shadow">
-                  Kakkanad Junction
-                </div>
-                <div className="absolute top-6 right-8 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 shadow">
-                  Infopark
-                </div>
-                <div className="absolute bottom-6 left-12 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 shadow">
-                  BgMatrix
-                </div>
-                <div className="absolute bottom-4 right-6 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-md text-[11px] font-bold text-slate-700 shadow">
-                  Civil Station Kakkanad
-                </div>
 
-                {/* Map Red Pin Marker */}
+                {/* Map Marker */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer group">
                   <div className="bg-white text-rose-600 text-xs font-black px-3 py-1 rounded-full shadow-lg border border-rose-100 flex items-center gap-1 animate-bounce">
                     <span className="w-2 h-2 rounded-full bg-rose-500" />
-                    Iron Fitness
+                    {gymName}
                   </div>
                   <MapPin className="w-8 h-8 text-rose-600 fill-rose-600 drop-shadow-md -mt-1" />
                 </div>
@@ -677,73 +613,84 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {SIMILAR_GYMS.map((gym) => (
-              <div
-                key={gym.id}
-                className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
-              >
-                <div>
-                  {/* Image Header */}
-                  <div className="relative aspect-[16/10] w-full bg-slate-100 overflow-hidden">
-                    <Image
-                      src={gym.image}
-                      alt={gym.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
-                    />
+            {similarGymsList.slice(0, 3).map((simGym: any) => {
+              const simId = simGym._id || simGym.id;
+              const simName = simGym.gymName || simGym.name || "Gym";
+              const simImage = (simGym.photos && simGym.photos.length > 0) ? simGym.photos[0] : DEFAULT_GYM_IMAGES[0];
+              const simRating = simGym.rating ?? 4.5;
+              const simReviews = simGym.reviewsCount ?? 24;
+              const simDistance = simGym.distance || "Near you";
+              const simPrice = simGym.dayPassPrice ?? simGym.price ?? 150;
+              const simVerified = simGym.isApproved !== undefined ? simGym.isApproved : true;
+
+              return (
+                <div
+                  key={simId}
+                  className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
+                >
+                  <div>
+                    {/* Image Header */}
+                    <div className="relative aspect-[16/10] w-full bg-slate-100 overflow-hidden">
+                      <Image
+                        src={simImage}
+                        alt={simName}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+                      />
+                    </div>
+
+                    {/* Body Content */}
+                    <div className="p-5 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-bold text-slate-900 text-lg group-hover:text-cyan-600 transition cursor-pointer">
+                          {simName}
+                        </h3>
+                        {simVerified && (
+                          <span className="inline-flex items-center gap-1 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
+                            <ShieldCheck className="w-3 h-3 text-cyan-400" />
+                            Verified
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                        <span className="flex items-center gap-1 text-slate-900 font-bold">
+                          <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                          {simRating}
+                          <span className="text-slate-500 font-normal">
+                            ({simReviews})
+                          </span>
+                        </span>
+                        <span className="text-slate-300">•</span>
+                        <span className="flex items-center gap-1 text-slate-500">
+                          <Footprints className="w-3.5 h-3.5 text-slate-400" />
+                          {simDistance}
+                        </span>
+                      </div>
+
+                      <div className="pt-2 flex items-baseline gap-1">
+                        <span className="text-xl font-black text-slate-900">
+                          ₹{simPrice}
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium">
+                          / Entry
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Body Content */}
-                  <div className="p-5 space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-bold text-slate-900 text-lg group-hover:text-cyan-600 transition cursor-pointer">
-                        {gym.name}
-                      </h3>
-                      {gym.isVerified && (
-                        <span className="inline-flex items-center gap-1 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
-                          <ShieldCheck className="w-3 h-3 text-cyan-400" />
-                          Verified
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                      <span className="flex items-center gap-1 text-slate-900 font-bold">
-                        <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                        {gym.rating}
-                        <span className="text-slate-500 font-normal">
-                          ({gym.reviews})
-                        </span>
-                      </span>
-                      <span className="text-slate-300">•</span>
-                      <span className="flex items-center gap-1 text-slate-500">
-                        <Footprints className="w-3.5 h-3.5 text-slate-400" />
-                        {gym.distance}
-                      </span>
-                    </div>
-
-                    <div className="pt-2 flex items-baseline gap-1">
-                      <span className="text-xl font-black text-slate-900">
-                        ₹{gym.price}
-                      </span>
-                      <span className="text-xs text-slate-500 font-medium">
-                        / Entry
-                      </span>
-                    </div>
+                  {/* Card Action Footer */}
+                  <div className="p-5 pt-0">
+                    <Link
+                      href={`/gyms/${simId}`}
+                      className="w-full bg-white hover:bg-slate-900 text-slate-800 hover:text-white border border-slate-200 font-bold py-2.5 px-4 rounded-xl transition-all duration-200 text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      View Details
+                    </Link>
                   </div>
                 </div>
-
-                {/* Card Action Footer */}
-                <div className="p-5 pt-0">
-                  <Link
-                    href={`/gyms/${gym.id}`}
-                    className="w-full bg-white hover:bg-slate-900 text-slate-800 hover:text-white border border-slate-200 font-bold py-2.5 px-4 rounded-xl transition-all duration-200 text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                  >
-                    View Details
-                  </Link>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -752,10 +699,10 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
       {/* Sticky Bottom Viewport Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0f172a] text-white border-t border-slate-800 py-3.5 px-4 sm:px-8 shadow-2xl">
         <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          
+
           <div className="flex items-center gap-4">
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-black text-white">₹150</span>
+              <span className="text-2xl font-black text-white">₹{dayPassPrice}</span>
               <span className="text-slate-400 text-xs font-normal">/ Entry</span>
             </div>
 
@@ -794,7 +741,7 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
           {/* Lightbox Header */}
           <div className="w-full max-w-7xl flex items-center justify-between text-white">
             <span className="text-sm font-bold">
-              Iron Fitness — Photo {currentImageIdx + 1} of {GALLERY_IMAGES.length}
+              {gymName} — Photo {currentImageIdx + 1} of {galleryImages.length}
             </span>
             <button
               onClick={() => setIsLightboxOpen(false)}
@@ -807,49 +754,54 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
           {/* Lightbox Main Image */}
           <div className="relative w-full max-w-5xl aspect-[16/10] my-auto overflow-hidden rounded-2xl">
             <Image
-              src={GALLERY_IMAGES[currentImageIdx]}
+              src={galleryImages[currentImageIdx] || galleryImages[0]}
               alt="Gym Photo"
               fill
               className="object-contain"
             />
 
-            <button
-              onClick={prevImage}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center backdrop-blur-md transition cursor-pointer"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
+            {galleryImages.length > 1 && (
+              <>
+                <button
+                  onClick={prevImage}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center backdrop-blur-md transition cursor-pointer"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
 
-            <button
-              onClick={nextImage}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center backdrop-blur-md transition cursor-pointer"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center backdrop-blur-md transition cursor-pointer"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
           </div>
 
           {/* Lightbox Thumbnails */}
-          <div className="w-full max-w-4xl flex items-center justify-center gap-2 overflow-x-auto py-2">
-            {GALLERY_IMAGES.map((imgUrl, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentImageIdx(idx)}
-                className={`relative w-16 h-12 rounded-lg overflow-hidden shrink-0 border-2 transition cursor-pointer ${
-                  currentImageIdx === idx ? "border-cyan-400" : "border-transparent opacity-50 hover:opacity-100"
-                }`}
-              >
-                <Image src={imgUrl} alt="Thumb" fill className="object-cover" />
-              </button>
-            ))}
-          </div>
+          {galleryImages.length > 1 && (
+            <div className="w-full max-w-4xl flex items-center justify-center gap-2 overflow-x-auto py-2">
+              {galleryImages.map((imgUrl: string, idx: number) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentImageIdx(idx)}
+                  className={`relative w-16 h-12 rounded-lg overflow-hidden shrink-0 border-2 transition cursor-pointer ${currentImageIdx === idx ? "border-cyan-400" : "border-transparent opacity-50 hover:opacity-100"
+                    }`}
+                >
+                  <Image src={imgUrl} alt="Thumb" fill className="object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Request for Entry Modal (2 Steps, Spacious Desktop View) */}
+      {/* Request for Entry Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6">
           <div className="bg-white rounded-3xl max-w-md sm:max-w-xl md:max-w-2xl w-full p-6 sm:p-8 md:p-10 shadow-2xl relative animate-scaleUp max-h-[92vh] overflow-y-auto">
-            
+
             <button
               onClick={closeModal}
               className="absolute top-5 right-5 sm:top-6 sm:right-6 p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer z-10"
@@ -869,21 +821,21 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
                 {/* Gym Card Banner */}
                 <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-center gap-4">
                   <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-slate-200 shadow-sm">
-                    <Image src={GALLERY_IMAGES[0]} alt="Iron Fitness" fill className="object-cover" />
+                    <Image src={galleryImages[0]} alt={gymName} fill className="object-cover" />
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-slate-900 text-base sm:text-lg">Iron Fitness</h4>
-                    <p className="text-xs sm:text-sm text-slate-500 font-medium">Kakkanad, Kochi</p>
+                    <h4 className="font-extrabold text-slate-900 text-base sm:text-lg">{gymName}</h4>
+                    {fullLocation && <p className="text-xs sm:text-sm text-slate-500 font-medium">{fullLocation}</p>}
                     <p className="text-sm font-black text-slate-900 mt-0.5">
-                      ₹150 <span className="text-slate-400 font-normal text-xs">/ Entry</span>
+                      ₹{dayPassPrice} <span className="text-slate-400 font-normal text-xs">/ Entry</span>
                     </p>
                   </div>
                 </div>
 
                 {/* Form Fields */}
                 <form onSubmit={handleStep1Submit} className="space-y-5 pt-1">
-                  
-                  {/* Row 1: Date & Preferred Time (2 cols on sm+) */}
+
+                  {/* Row 1: Date & Preferred Time */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Date Field */}
                     <div>
@@ -901,9 +853,8 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
                             setRequestDate(e.target.value);
                             if (errors.date) setErrors((prev) => ({ ...prev, date: "" }));
                           }}
-                          className={`w-full pl-10 pr-4 py-3 rounded-xl border text-xs sm:text-sm font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#009fb7] ${
-                            errors.date ? "border-rose-500 bg-rose-50/20" : "border-slate-200"
-                          }`}
+                          className={`w-full pl-10 pr-4 py-3 rounded-xl border text-xs sm:text-sm font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#009fb7] ${errors.date ? "border-rose-500 bg-rose-50/20" : "border-slate-200"
+                            }`}
                         />
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1">You can select a date up to 14 days from today</p>
@@ -951,23 +902,21 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
                         setUserName(e.target.value);
                         if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
                       }}
-                      className={`w-full px-4 py-3 rounded-xl border text-xs sm:text-sm font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#009fb7] ${
-                        errors.name ? "border-rose-500 bg-rose-50/20" : "border-slate-200"
-                      }`}
+                      className={`w-full px-4 py-3 rounded-xl border text-xs sm:text-sm font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#009fb7] ${errors.name ? "border-rose-500 bg-rose-50/20" : "border-slate-200"
+                        }`}
                     />
                     {errors.name && <p className="text-rose-500 text-xs font-semibold mt-1">{errors.name}</p>}
                   </div>
 
-                  {/* Row 3: Mobile & Email (2 cols on sm+) */}
+                  {/* Row 3: Mobile & Email */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {/* Mobile Number Field */}
                     <div>
                       <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">
                         Mobile Number <span className="text-rose-500">*</span>
                       </label>
                       <div className="flex gap-2">
                         <div className="bg-slate-100 border border-slate-200 rounded-xl px-3 py-3 text-xs sm:text-sm font-bold text-slate-700 flex items-center shrink-0">
-                          +91 ∨
+                          +91
                         </div>
                         <input
                           type="tel"
@@ -979,15 +928,13 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
                             setUserPhone(val);
                             if (errors.phone) setErrors((prev) => ({ ...prev, phone: "" }));
                           }}
-                          className={`w-full px-4 py-3 rounded-xl border text-xs sm:text-sm font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#009fb7] ${
-                            errors.phone ? "border-rose-500 bg-rose-50/20" : "border-slate-200"
-                          }`}
+                          className={`w-full px-4 py-3 rounded-xl border text-xs sm:text-sm font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#009fb7] ${errors.phone ? "border-rose-500 bg-rose-50/20" : "border-slate-200"
+                            }`}
                         />
                       </div>
                       {errors.phone && <p className="text-rose-500 text-xs font-semibold mt-1">{errors.phone}</p>}
                     </div>
 
-                    {/* Email Field */}
                     <div>
                       <label className="block text-xs sm:text-sm font-bold text-slate-700 mb-1.5">
                         Email <span className="text-slate-400 font-normal">(Optional)</span>
@@ -1000,9 +947,8 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
                           setUserEmail(e.target.value);
                           if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
                         }}
-                        className={`w-full px-4 py-3 rounded-xl border text-xs sm:text-sm font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#009fb7] ${
-                          errors.email ? "border-rose-500 bg-rose-50/20" : "border-slate-200"
-                        }`}
+                        className={`w-full px-4 py-3 rounded-xl border text-xs sm:text-sm font-medium text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#009fb7] ${errors.email ? "border-rose-500 bg-rose-50/20" : "border-slate-200"
+                          }`}
                       />
                       {errors.email && <p className="text-rose-500 text-xs font-semibold mt-1">{errors.email}</p>}
                     </div>
@@ -1054,7 +1000,7 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
                     Your request is ready!
                   </h3>
                   <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-sm mx-auto leading-relaxed">
-                    We'll now open WhatsApp with a pre-filled message to Iron Fitness.
+                    We'll now open WhatsApp with a pre-filled message to {gymName}.
                   </p>
                 </div>
 
@@ -1076,7 +1022,7 @@ export default function GymDetailsClient({ gymId = "1" }: GymDetailsClientProps)
                     className="w-full bg-[#009fb7] hover:bg-[#00899e] text-white font-extrabold py-4 px-6 rounded-xl flex items-center justify-center gap-2.5 shadow-xl hover:shadow-cyan-950/30 transition cursor-pointer text-base"
                   >
                     <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
                     </svg>
                     <span>Open WhatsApp</span>
                   </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { Store, ShieldCheck, TrendingUp, Users, ArrowRight } from "lucide-react";
 
 
@@ -48,7 +49,7 @@ export default function ListYourGymPage() {
         </div>
 
         {/* Lead Form */}
-        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl max-w-xl mx-auto space-y-6">
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-xl max-w-xl mx-auto space-y-6">
           <h2 className="text-2xl font-black text-slate-900 text-center">
             List Your Gym Today
           </h2>
@@ -86,12 +87,37 @@ export default function ListYourGymPage() {
             </div>
             <button
               type="submit"
-              className="w-full bg-[#00b4d8] hover:bg-[#0096b4] text-white font-extrabold py-3.5 rounded-xl shadow-lg shadow-[#00b4d8]/25 transition flex items-center justify-center gap-2"
+              className="w-full bg-[#00b4d8] hover:bg-[#0096b4] text-white font-extrabold py-3.5 rounded-xl shadow-lg shadow-[#00b4d8]/25 transition flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>Submit Listing Request</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
+        </div>
+
+        {/* Separate Existing Partner Login Section */}
+        <div className="bg-[#090d16] text-white p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-xl max-w-xl mx-auto space-y-4 text-center">
+          <div className="inline-flex items-center gap-1.5 bg-[#00b4d8]/15 text-[#00b4d8] text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+            Gym Partner Access
+          </div>
+          
+          <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+            Already a GYM ON Partner?
+          </h3>
+          
+          <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-md mx-auto font-medium">
+            Access your dashboard to manage your gym listing, pricing, opening hours and availability.
+          </p>
+
+          <div className="pt-2">
+            <Link
+              href="/provider/login"
+              className="inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-xl border border-slate-700 hover:border-slate-600 transition-all text-sm cursor-pointer shadow-md group w-full sm:w-auto"
+            >
+              <span>Provider Login</span>
+              <ArrowRight className="w-4 h-4 text-[#00b4d8] group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
         </div>
 
       </div>

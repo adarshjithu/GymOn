@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { User, Menu, X } from "lucide-react";
 
@@ -19,18 +20,15 @@ export default function Header() {
 
 
         {/* Brand Logo */}
-        <Link href="/" className="flex flex-col group focus:outline-none">
-          <div className="flex items-center gap-1.5">
-            <span className="text-3xl font-bold tracking-tight text-white font-sans">
-              Gym
-            </span>
-            <span className="bg-[#00b4d8] text-slate-950 font-bold text-xl px-2.5 py-0.5 rounded-lg leading-none shadow-sm shadow-[#00b4d8]/20">
-              On
-            </span>
-          </div>
-          <span className="text-[9px] font-semibold tracking-[0.24em] text-[#00b4d8] uppercase mt-0.5">
-            Access <span className="text-white">Every</span> Gym
-          </span>
+        <Link href="/" className="flex items-center focus:outline-none">
+          <Image
+            src="/logo.png"
+            alt="GymOn"
+            width={240}
+            height={60}
+            className="h-12 sm:h-14 w-auto object-contain"
+            priority
+          />
         </Link>
 
 
@@ -71,6 +69,14 @@ export default function Header() {
           </Link>
 
           <Link
+            href="/faq"
+            className={`transition-colors ${isActive("/faq") ? "text-[#00b4d8] font-semibold" : "text-slate-300 hover:text-white"
+              }`}
+          >
+            FAQ
+          </Link>
+
+          <Link
             href="/contact"
             className={`transition-colors ${isActive("/contact") ? "text-[#00b4d8] font-semibold" : "text-slate-300 hover:text-white"
               }`}
@@ -79,22 +85,11 @@ export default function Header() {
           </Link>
         </nav>
 
-        {/* Right Login Button */}
-        <div className="hidden md:flex items-center">
-          <Link
-            href="/login"
-            className="flex items-center gap-2 bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/80 hover:border-slate-600 px-5 py-2 rounded-full text-xs font-semibold transition-all shadow-sm"
-          >
-            <User className="w-4 h-4 text-slate-400" />
-            <span>Login</span>
-          </Link>
-        </div>
-
         {/* Mobile menu button */}
         <div className="md:hidden flex items-center">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-slate-400 hover:text-white rounded-lg focus:outline-none"
+            className="p-2 text-slate-400 hover:text-white rounded-lg focus:outline-none cursor-pointer"
             aria-label="Toggle Navigation Menu"
           >
             {mobileMenuOpen ? (
@@ -138,22 +133,19 @@ export default function Header() {
             About
           </Link>
           <Link
+            href="/faq"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block text-slate-300 hover:text-white font-medium py-2"
+          >
+            FAQ
+          </Link>
+          <Link
             href="/contact"
             onClick={() => setMobileMenuOpen(false)}
             className="block text-slate-300 hover:text-white font-medium py-2"
           >
             Contact
           </Link>
-          <div className="pt-2">
-            <Link
-              href="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-2 w-full bg-slate-800 text-slate-200 border border-slate-700 px-5 py-2.5 rounded-full text-xs font-semibold"
-            >
-              <User className="w-4 h-4 text-slate-400" />
-              <span>Login</span>
-            </Link>
-          </div>
         </div>
       )}
     </header>

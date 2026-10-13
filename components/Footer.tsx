@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Smartphone, Apple } from "lucide-react";
 
 export default function Footer() {
@@ -12,18 +13,14 @@ export default function Footer() {
           
           {/* Brand Info */}
           <div className="lg:col-span-2 space-y-4">
-            <Link href="/" className="flex flex-col inline-block">
-              <div className="flex items-center gap-1.5">
-                <span className="text-3xl font-bold tracking-tight text-white font-sans">
-                  Gym
-                </span>
-                <span className="bg-[#00b4d8] text-slate-950 font-bold text-xl px-2.5 py-0.5 rounded-lg leading-none shadow-sm">
-                  On
-                </span>
-              </div>
-              <span className="text-[9px] font-semibold tracking-[0.24em] text-[#00b4d8] uppercase mt-0.5">
-                Access <span className="text-white">Every</span> Gym
-              </span>
+            <Link href="/" className="inline-block focus:outline-none">
+              <Image
+                src="/logo.png"
+                alt="GymOn"
+                width={240}
+                height={60}
+                className="h-11 sm:h-12 w-auto object-contain"
+              />
             </Link>
 
 
@@ -121,8 +118,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/login" className="hover:text-[#00b4d8] transition-colors">
-                  Gym Portal Login
+                <Link href="/provider/login" className="hover:text-[#00b4d8] transition-colors">
+                  Provider Login
                 </Link>
               </li>
               <li>

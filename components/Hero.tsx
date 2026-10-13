@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Target, MapPin } from "lucide-react";
 
@@ -9,6 +9,19 @@ export default function Hero({ onSearch }: { onSearch?: (query: string) => void 
   const [isLocating, setIsLocating] = useState(false);
   const [location, setLocation] = useState("Kochi, Kerala");
   const router = useRouter();
+
+  // Debounce search input typing to automatically trigger search without clicking button
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("gymon:search-changed", {
+          detail: { query: searchQuery.trim() },
+        })
+      );
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,13 +32,33 @@ export default function Hero({ onSearch }: { onSearch?: (query: string) => void 
     router.push(`/gyms?q=${encodeURIComponent(q)}`);
   };
 
+
   const handleGetCurrentLocation = () => {
-    setIsLocating(true);
-    setTimeout(() => {
-      setLocation("Kochi, Kerala");
-      setIsLocating(false);
-    }, 500);
+    if (typeof window !== "undefined" && "geolocation" in navigator) {
+      setIsLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setLocation("Current Location");
+          setIsLocating(false);
+
+          // Dispatch custom event so FeaturedGyms (and other listeners) instantly update
+          window.dispatchEvent(
+            new CustomEvent("gymon:location-changed", {
+              detail: { latitude, longitude },
+            })
+          );
+        },
+        (error) => {
+          console.warn("Geolocation position denied or unavailable:", error);
+          setIsLocating(false);
+          setLocation("Kochi, Kerala");
+        },
+        { timeout: 8000 }
+      );
+    }
   };
+
 
   return (
     <section className="relative bg-[#090d16] pt-12 pb-24 overflow-hidden min-h-[520px] flex items-center">
