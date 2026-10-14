@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Star,
   MapPin,
-  ShieldCheck,
   ChevronLeft,
   ChevronRight,
   Check,
@@ -247,16 +246,10 @@ export default function GymDetailsClient({ gymId = "1", gym, similarGyms: initia
 
         {/* Gym Header Title & Metadata */}
         <div className="space-y-2 mb-6">
-          <div className="flex flex-wrap items-center gap-3">
+          <div>
             <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
               {gymName}
             </h1>
-            {isVerified && (
-              <span className="inline-flex items-center gap-1 bg-[#0f172a] text-white text-xs font-bold px-2.5 py-1 rounded-md shadow-sm">
-                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400 fill-cyan-400/20" />
-                Verified
-              </span>
-            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-slate-600 font-medium">
@@ -518,15 +511,7 @@ export default function GymDetailsClient({ gymId = "1", gym, similarGyms: initia
                 </div>
               )}
 
-              <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-slate-100 text-slate-700 mt-0.5">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="text-xs text-slate-500 font-medium">Verification Status</div>
-                  <div className="text-sm font-bold text-slate-900">{isVerified ? "Verified" : "Pending"}</div>
-                </div>
-              </div>
+
 
               <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-slate-100 text-slate-700 mt-0.5">
@@ -641,16 +626,10 @@ export default function GymDetailsClient({ gymId = "1", gym, similarGyms: initia
 
                     {/* Body Content */}
                     <div className="p-5 space-y-3">
-                      <div className="flex items-start justify-between gap-2">
+                      <div>
                         <h3 className="font-bold text-slate-900 text-lg group-hover:text-cyan-600 transition cursor-pointer">
                           {simName}
                         </h3>
-                        {simVerified && (
-                          <span className="inline-flex items-center gap-1 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
-                            <ShieldCheck className="w-3 h-3 text-cyan-400" />
-                            Verified
-                          </span>
-                        )}
                       </div>
 
                       <div className="flex items-center gap-2 text-xs font-medium text-slate-600">

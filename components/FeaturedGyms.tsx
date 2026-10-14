@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRight,
-  CheckCircle2,
   Dumbbell,
 } from "lucide-react";
 import { getNearbyGyms, getGyms } from "@/app/api/client/gymApi";
@@ -303,13 +302,7 @@ export default function FeaturedGyms() {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
 
-                      {/* Verified Badge */}
-                      {gym.isVerified && (
-                        <div className="absolute top-3 left-3 bg-[#00b4d8] text-white text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" />
-                          VERIFIED
-                        </div>
-                      )}
+
 
                       {/* Wishlist Button */}
                       <button
@@ -354,64 +347,23 @@ export default function FeaturedGyms() {
                             </div>
                           </div>
 
-                          {/* Facilities highlight badge (e.g. ladies only) on right */}
-                          {gym.facilities && gym.facilities.length > 0 && (
-                            <div className="flex flex-col items-end gap-1 shrink-0 pt-0.5">
-                              {gym.facilities
-                                .slice()
-                                .sort((a, b) => {
-                                  const aLadies =
-                                    a.toLowerCase().includes("ladies") ||
-                                    a.toLowerCase().includes("women");
-                                  const bLadies =
-                                    b.toLowerCase().includes("ladies") ||
-                                    b.toLowerCase().includes("women");
-                                  return aLadies === bLadies ? 0 : aLadies ? -1 : 1;
-                                })
-                                .slice(0, 2)
-                                .map((fac, idx) => {
-                                  const isLadies =
-                                    fac.toLowerCase().includes("ladies") ||
-                                    fac.toLowerCase().includes("women");
-                                  return (
-                                    <span
-                                      key={idx}
-                                      className={`text-[10px] sm:text-[11px] font-bold px-2.5 py-1 rounded-md tracking-tight leading-none whitespace-nowrap capitalize ${
-                                        isLadies
-                                          ? "bg-amber-300 text-slate-900 border border-amber-400/80 shadow-xs"
-                                          : "bg-slate-100 text-slate-700 border border-slate-200"
-                                      }`}
-                                    >
-                                      {fac}
-                                    </span>
-                                  );
-                                })}
-                            </div>
-                          )}
                         </div>
                       </div>
 
-                      {/* Additional Facilities Chips (if more than 2 facilities exist) */}
-                      {gym.facilities && gym.facilities.length > 2 && (
+                      {/* Facilities Chips */}
+                      {gym.facilities && gym.facilities.length > 0 && (
                         <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                          {gym.facilities
-                            .filter(
-                              (f) =>
-                                !f.toLowerCase().includes("ladies") &&
-                                !f.toLowerCase().includes("women")
-                            )
-                            .slice(0, 3)
-                            .map((fac, idx) => (
-                              <span
-                                key={idx}
-                                className="text-[10px] font-medium text-slate-600 bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded-md"
-                              >
-                                {fac}
-                              </span>
-                            ))}
-                          {gym.facilities.length > 5 && (
+                          {gym.facilities.slice(0, 3).map((fac, idx) => (
+                            <span
+                              key={idx}
+                              className="text-[10px] font-medium text-slate-600 bg-slate-50 border border-slate-200/80 px-2 py-0.5 rounded-md"
+                            >
+                              {fac}
+                            </span>
+                          ))}
+                          {gym.facilities.length > 3 && (
                             <span className="text-[10px] font-semibold text-slate-400">
-                              +{gym.facilities.length - 5}
+                              +{gym.facilities.length - 3}
                             </span>
                           )}
                         </div>

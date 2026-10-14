@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Star, ShieldCheck, Footprints, ArrowRight } from "lucide-react";
+import { Star, Footprints, ArrowRight } from "lucide-react";
 import { getNearbyGyms, getGyms } from "@/app/api/client/gymApi";
 
 interface GymItem {
@@ -164,12 +164,7 @@ export default function SimilarGyms({
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
                   />
-                  {gym.isVerified && (
-                    <div className="absolute top-3 right-3 bg-slate-900/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-cyan-400" />
-                      <span>Verified</span>
-                    </div>
-                  )}
+
                 </Link>
 
                 {/* Body Content */}

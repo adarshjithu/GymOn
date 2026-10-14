@@ -444,12 +444,7 @@ function GymsContent() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
 
-                    {gym.isVerified && (
-                      <div className="absolute top-3 left-3 bg-[#00b4d8] text-white text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" />
-                        VERIFIED
-                      </div>
-                    )}
+
 
                     <div className="absolute bottom-3 left-3">
                       {gym.isOpen ? (
