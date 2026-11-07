@@ -32,6 +32,7 @@ import { getGyms, getNearbyGyms } from "@/app/api/client/gymApi";
 
 interface GymListing {
   id: string;
+  slug?: string;
   name: string;
   location: string;
   area: string;
@@ -113,6 +114,7 @@ function GymsContent() {
         if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
           const formatted: GymListing[] = res.data.map((item: any, idx: number) => ({
             id: item._id || item.id || String(idx + 1),
+            slug: item.slug || item._id || item.id || String(idx + 1),
             name: item.gymName || item.name || "Gym",
             area: item.city || item.address || "Location",
             location: item.address || item.city || "Location",
@@ -167,6 +169,7 @@ function GymsContent() {
             if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
               const formatted: GymListing[] = res.data.map((item: any, idx: number) => ({
                 id: item._id || item.id || String(idx + 1),
+                slug: item.slug || item._id || item.id || String(idx + 1),
                 name: item.gymName || item.name || "Gym",
                 area: item.city || item.address || "Location",
                 location: item.address || item.city || "Location",
@@ -425,7 +428,7 @@ function GymsContent() {
           ) : (
             filteredGyms.map((gym) => {
               const isFav = !!favorites[gym.id];
-
+              const gymLink = `/gyms/${encodeURIComponent(gym.slug || gym.id)}`;
 
               return (
                 <div
@@ -434,7 +437,7 @@ function GymsContent() {
                 >
                   {/* Left Image Section */}
                   <Link
-                    href={`/gyms/${gym.id}`}
+                    href={gymLink}
                     className="relative w-full md:w-80 h-52 md:h-auto bg-slate-900 flex-shrink-0 overflow-hidden cursor-pointer block"
                   >
                     <img
@@ -464,7 +467,7 @@ function GymsContent() {
                     <div className="space-y-1.5">
                       <div className="flex items-start justify-between gap-2">
                         <Link
-                          href={`/gyms/${gym.id}`}
+                          href={gymLink}
                           className="text-xl font-black text-slate-900 group-hover:text-[#00b4d8] transition-colors leading-snug cursor-pointer"
                         >
                           {gym.name}
@@ -574,7 +577,7 @@ function GymsContent() {
                     </div>
 
                     <Link
-                      href={`/gyms/${gym.id}`}
+                      href={gymLink}
                       className="w-full bg-white hover:bg-slate-900 text-slate-800 hover:text-white border border-slate-300 font-bold py-2.5 px-4 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 shadow-sm group/btn cursor-pointer"
                     >
                       <span>View Details</span>

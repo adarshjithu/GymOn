@@ -1,17 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Target, MapPin } from "lucide-react";
 
 export default function Hero({ onSearch }: { onSearch?: (query: string) => void }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [hasUserTyped, setHasUserTyped] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [location, setLocation] = useState("Kochi, Kerala");
   const router = useRouter();
 
-  // Debounce search input typing to automatically trigger search without clicking button
+  // Debounce search input typing to automatically trigger search only after user types
   useEffect(() => {
+    if (!hasUserTyped) return;
+
     const timer = setTimeout(() => {
       window.dispatchEvent(
         new CustomEvent("gymon:search-changed", {
@@ -21,7 +24,7 @@ export default function Hero({ onSearch }: { onSearch?: (query: string) => void 
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, hasUserTyped]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +99,10 @@ export default function Hero({ onSearch }: { onSearch?: (query: string) => void 
                   <input
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setHasUserTyped(true);
+                    }}
                     placeholder="Search by area, landmark or gym name"
                     className="w-full text-slate-800 placeholder:text-slate-400 text-sm font-normal bg-transparent focus:outline-none"
                   />

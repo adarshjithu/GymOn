@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useParams } from "next/navigation";
 import {
   ArrowLeft,
   Star,
@@ -23,10 +24,11 @@ import {
   Dumbbell,
   Footprints,
 } from "lucide-react";
-import { getNearbyGyms, getGyms } from "@/app/api/client/gymApi";
+import { getNearbyGyms, getGyms, getGymBySlug } from "@/app/api/client/gymApi";
 
 interface GymDetailsClientProps {
   gymId?: string;
+  gymSlug?: string;
   gym?: any;
   similarGyms?: any[];
 }
@@ -35,40 +37,12 @@ const DEFAULT_GYM_IMAGES = [
   "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=80",
 ];
 
-const FALLBACK_SIMILAR_GYMS = [
-  {
-    id: "fit-hub-kochi",
-    gymName: "FitHub Kochi",
-    photos: ["https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80"],
-    rating: 4.7,
-    reviewsCount: 96,
-    distance: "2.1 km away",
-    dayPassPrice: 200,
-    isApproved: true,
-  },
-  {
-    id: "body-form-gym",
-    gymName: "Body Form Gym",
-    photos: ["https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&w=800&q=80"],
-    rating: 4.5,
-    reviewsCount: 73,
-    distance: "2.6 km away",
-    dayPassPrice: 120,
-    isApproved: true,
-  },
-  {
-    id: "powerzone-fitness",
-    gymName: "PowerZone Fitness",
-    photos: ["https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80"],
-    rating: 4.6,
-    reviewsCount: 54,
-    distance: "3.3 km away",
-    dayPassPrice: 180,
-    isApproved: true,
-  },
-];
+export default function GymDetailsClient({ gymId, gymSlug, gym, similarGyms: initialSimilarGyms = [] }: GymDetailsClientProps) {
+  const routeParams = useParams();
+  const targetSlug = (gymSlug || (routeParams?.slug as string) || (routeParams?.id as string) || gymId || "") as string;
 
-export default function GymDetailsClient({ gymId = "1", gym, similarGyms: initialSimilarGyms = [] }: GymDetailsClientProps) {
+  const [currentGym, setCurrentGym] = useState<any>(gym);
+  const [isLoadingGym, setIsLoadingGym] = useState<boolean>(!gym);
   const [currentImageIdx, setCurrentImageIdx] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -76,36 +50,54 @@ export default function GymDetailsClient({ gymId = "1", gym, similarGyms: initia
   const [isSaved, setIsSaved] = useState(false);
   const [similarGymsList, setSimilarGymsList] = useState<any[]>(initialSimilarGyms);
 
-  useEffect(() => {
-    let combined = [...(initialSimilarGyms || [])];
-
-    // If initialSimilarGyms has fewer than 3 items, fill missing slots with fallback gyms
-    if (combined.length < 3) {
-      const missing = FALLBACK_SIMILAR_GYMS.filter(
-        (fb) => !combined.some((c: any) => (c._id || c.id)?.toString() === fb.id)
-      );
-      combined = [...combined, ...missing].slice(0, 3);
+  const loadGymData = useCallback(async (slugToFetch: string) => {
+    if (!slugToFetch) return;
+    setIsLoadingGym(true);
+    try {
+      const res = await getGymBySlug(slugToFetch);
+      if (res && res.data) {
+        setCurrentGym(res.data);
+      } else {
+        setCurrentGym(null);
+      }
+    } catch (err) {
+      console.error("Failed to load gym details on client:", err);
+      setCurrentGym(null);
+    } finally {
+      setIsLoadingGym(false);
     }
+  }, []);
 
-    setSimilarGymsList(combined);
-  }, [initialSimilarGyms, gymId, gym]);
+  // Client-side fetch if gym wasn't SSR rendered or needs hydrating
+  useEffect(() => {
+    if (gym) {
+      setCurrentGym(gym);
+      setIsLoadingGym(false);
+    } else if (targetSlug) {
+      loadGymData(targetSlug);
+    }
+  }, [gym, targetSlug, loadGymData]);
 
-  // Dynamic values extracted from server gym object
-  const gymName = gym?.gymName || gym?.name || "Gym Details";
-  const address = gym?.address || "";
-  const city = gym?.city || "";
+  useEffect(() => {
+    setSimilarGymsList(initialSimilarGyms || []);
+  }, [initialSimilarGyms]);
+
+  // Dynamic values extracted from current gym object
+  const gymName = currentGym?.gymName || currentGym?.name || "Gym Details";
+  const address = currentGym?.address || "";
+  const city = currentGym?.city || "";
   const fullLocation = [address, city].filter(Boolean).join(", ");
-  const dayPassPrice = gym?.dayPassPrice ?? gym?.price ?? 0;
-  const description = gym?.description || "No description provided for this gym.";
-  const phoneNumber = gym?.phoneNumber || "";
-  const rating = gym?.rating ?? 4.5;
-  const reviewsCount = gym?.reviewsCount ?? 0;
-  const isVerified = gym?.isApproved !== undefined ? gym?.isApproved : true;
-  const isOpen = gym?.isActive !== undefined ? gym?.isActive : true;
+  const dayPassPrice = currentGym?.dayPassPrice ?? currentGym?.price ?? 0;
+  const description = currentGym?.description || "No description provided for this gym.";
+  const phoneNumber = currentGym?.phoneNumber || "";
+  const rating = currentGym?.rating ?? 4.8;
+  const reviewsCount = currentGym?.reviewsCount ?? 120;
+  const isVerified = currentGym?.isApproved !== undefined ? currentGym?.isApproved : true;
+  const isOpen = currentGym?.isActive !== undefined ? currentGym?.isActive : true;
 
-  const galleryImages = gym?.photos && gym.photos.length > 0 ? gym.photos : DEFAULT_GYM_IMAGES;
-  const facilitiesList: string[] = gym?.facilities || [];
-  const openingHours = gym?.openingHours || [];
+  const galleryImages = currentGym?.photos && currentGym.photos.length > 0 ? currentGym.photos : DEFAULT_GYM_IMAGES;
+  const facilitiesList: string[] = currentGym?.facilities || [];
+  const openingHours = currentGym?.openingHours || [];
 
   // Form states & validation for Request for Entry
   const [requestDate, setRequestDate] = useState("");
@@ -199,6 +191,57 @@ export default function GymDetailsClient({ gymId = "1", gym, similarGyms: initia
     setModalStep(1);
     setErrors({});
   };
+
+  if (isLoadingGym) {
+    return (
+      <div className="bg-[#f8fafc] min-h-screen text-slate-900 pb-28 pt-8">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+          <div className="h-6 w-32 bg-slate-200 rounded animate-pulse" />
+          <div className="h-10 w-2/3 bg-slate-200 rounded animate-pulse" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8 aspect-[16/9] bg-slate-200 rounded-2xl animate-pulse" />
+            <div className="lg:col-span-4 h-80 bg-slate-200 rounded-2xl animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!currentGym) {
+    return (
+      <div className="bg-[#f8fafc] min-h-screen text-slate-900 pb-28 pt-16 flex items-center justify-center">
+        <div className="max-w-md w-full mx-auto px-4 text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+            <Dumbbell className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900">Gym Not Found</h2>
+          <p className="text-slate-500 text-sm">
+            {targetSlug
+              ? `We couldn't find "${targetSlug}". It may still be loading or the link is incorrect.`
+              : "We couldn't find the gym you're looking for. It may have been removed or the link is incorrect."}
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            {targetSlug && (
+              <button
+                type="button"
+                onClick={() => loadGymData(targetSlug)}
+                className="inline-flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold px-5 py-2.5 rounded-xl transition shadow-sm text-sm cursor-pointer"
+              >
+                <span>Retry</span>
+              </button>
+            )}
+            <Link
+              href="/gyms"
+              className="inline-flex items-center gap-2 bg-[#009fb7] hover:bg-[#00899e] text-white font-bold px-6 py-2.5 rounded-xl transition shadow-md text-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Browse All Gyms</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#f8fafc] min-h-screen text-slate-900 pb-28 pt-6">
@@ -582,96 +625,102 @@ export default function GymDetailsClient({ gymId = "1", gym, similarGyms: initia
 
         </div>
 
-        {/* Similar Gyms Near You Section */}
-        <div className="mt-14">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              Similar Gyms Near You
-            </h2>
-            <Link
-              href="/gyms"
-              className="text-sm font-bold text-[#009fb7] hover:text-[#00899e] flex items-center gap-1.5 transition-colors cursor-pointer group"
-            >
-              <span>View all gyms</span>
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </div>
+        {/* Similar Gyms Near You Section (Only from API) */}
+        {similarGymsList && similarGymsList.length > 0 && (
+          <div className="mt-14">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                Similar Gyms Near You
+              </h2>
+              <Link
+                href="/gyms"
+                className="text-sm font-bold text-[#009fb7] hover:text-[#00899e] flex items-center gap-1.5 transition-colors cursor-pointer group"
+              >
+                <span>View all gyms</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {similarGymsList.slice(0, 3).map((simGym: any) => {
-              const simId = simGym._id || simGym.id;
-              const simName = simGym.gymName || simGym.name || "Gym";
-              const simImage = (simGym.photos && simGym.photos.length > 0) ? simGym.photos[0] : DEFAULT_GYM_IMAGES[0];
-              const simRating = simGym.rating ?? 4.5;
-              const simReviews = simGym.reviewsCount ?? 24;
-              const simDistance = simGym.distance || "Near you";
-              const simPrice = simGym.dayPassPrice ?? simGym.price ?? 150;
-              const simVerified = simGym.isApproved !== undefined ? simGym.isApproved : true;
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {similarGymsList.slice(0, 3).map((simGym: any) => {
+                const simId = simGym._id || simGym.id;
+                const simSlug = simGym.slug || simGym._id || simGym.id;
+                const simLink = `/gyms/${encodeURIComponent(simSlug)}`;
+                const simName = simGym.gymName || simGym.name || "Gym";
+                const simImage = (simGym.photos && simGym.photos.length > 0) ? simGym.photos[0] : DEFAULT_GYM_IMAGES[0];
+                const simRating = simGym.rating ?? 4.5;
+                const simReviews = simGym.reviewsCount ?? 24;
+                const simDistance = simGym.distance || "Near you";
+                const simPrice = simGym.dayPassPrice ?? simGym.price ?? 150;
+                const simVerified = simGym.isApproved !== undefined ? simGym.isApproved : true;
 
-              return (
-                <div
-                  key={simId}
-                  className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
-                >
-                  <div>
-                    {/* Image Header */}
-                    <div className="relative aspect-[16/10] w-full bg-slate-100 overflow-hidden">
-                      <Image
-                        src={simImage}
-                        alt={simName}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
-                      />
-                    </div>
+                return (
+                  <div
+                    key={simId}
+                    className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
+                  >
+                    <div>
+                      {/* Image Header */}
+                      <Link href={simLink} className="relative aspect-[16/10] w-full bg-slate-100 overflow-hidden block">
+                        <Image
+                          src={simImage}
+                          alt={simName}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+                        />
+                      </Link>
 
-                    {/* Body Content */}
-                    <div className="p-5 space-y-3">
-                      <div>
-                        <h3 className="font-bold text-slate-900 text-lg group-hover:text-cyan-600 transition cursor-pointer">
-                          {simName}
-                        </h3>
-                      </div>
+                      {/* Body Content */}
+                      <div className="p-5 space-y-3">
+                        <div>
+                          <Link href={simLink} className="block">
+                            <h3 className="font-bold text-slate-900 text-lg group-hover:text-cyan-600 transition cursor-pointer">
+                              {simName}
+                            </h3>
+                          </Link>
+                        </div>
 
-                      <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                        <span className="flex items-center gap-1 text-slate-900 font-bold">
-                          <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                          {simRating}
-                          <span className="text-slate-500 font-normal">
-                            ({simReviews})
+                        <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                          <span className="flex items-center gap-1 text-slate-900 font-bold">
+                            <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                            {simRating}
+                            <span className="text-slate-500 font-normal">
+                              ({simReviews})
+                            </span>
                           </span>
-                        </span>
-                        <span className="text-slate-300">•</span>
-                        <span className="flex items-center gap-1 text-slate-500">
-                          <Footprints className="w-3.5 h-3.5 text-slate-400" />
-                          {simDistance}
-                        </span>
-                      </div>
+                          <span className="text-slate-300">•</span>
+                          <span className="flex items-center gap-1 text-slate-500">
+                            <Footprints className="w-3.5 h-3.5 text-slate-400" />
+                            {simDistance}
+                          </span>
+                        </div>
 
-                      <div className="pt-2 flex items-baseline gap-1">
-                        <span className="text-xl font-black text-slate-900">
-                          ₹{simPrice}
-                        </span>
-                        <span className="text-xs text-slate-500 font-medium">
-                          / Entry
-                        </span>
+                        <div className="pt-2 flex items-baseline gap-1">
+                          <span className="text-xl font-black text-slate-900">
+                            ₹{simPrice}
+                          </span>
+                          <span className="text-xs text-slate-500 font-medium">
+                            / Entry
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Card Action Footer */}
-                  <div className="p-5 pt-0">
-                    <Link
-                      href={`/gyms/${simId}`}
-                      className="w-full bg-white hover:bg-slate-900 text-slate-800 hover:text-white border border-slate-200 font-bold py-2.5 px-4 rounded-xl transition-all duration-200 text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                    >
-                      View Details
-                    </Link>
+                    {/* Card Action Footer */}
+                    <div className="p-5 pt-0">
+                      <Link
+                        href={simLink}
+                        className="w-full bg-white hover:bg-slate-900 text-slate-800 hover:text-white border border-slate-200 font-bold py-2.5 px-4 rounded-xl transition-all duration-200 text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                      >
+                        View Details
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
 

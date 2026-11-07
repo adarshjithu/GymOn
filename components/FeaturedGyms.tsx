@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import {
   Star,
@@ -10,10 +10,11 @@ import {
   ArrowRight,
   Dumbbell,
 } from "lucide-react";
-import { getNearbyGyms, getGyms } from "@/app/api/client/gymApi";
+import { getFeaturedGyms, getGyms } from "@/app/api/client/gymApi";
 
-interface GymItem {
+export interface GymItem {
   id: string;
+  slug?: string;
   name: string;
   location: string;
   rating: number;
@@ -50,143 +51,122 @@ const extractFacilities = (item: any): string[] => {
   return list;
 };
 
-const DUMMY_GYMS: GymItem[] = [
-  {
-    id: "1",
-    name: "Gold's Gym Express",
-    location: "Kakkanad, Kochi",
-    rating: 4.8,
-    reviewsCount: 184,
-    distance: "1.2 km away",
-    price: 199,
-    image:
-      "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=600&q=80",
-    isVerified: true,
-    facilities: ["ladies only", "AC", "Personal Trainer", "Steam Bath"],
-  },
-  {
-    id: "2",
-    name: "Powerhouse Fitness Club",
-    location: "Palarivattom, Kochi",
-    rating: 4.6,
-    reviewsCount: 142,
-    distance: "2.4 km away",
-    price: 149,
-    image:
-      "https://images.unsplash.com/photo-1540497077202-7c8a3999166f?auto=format&fit=crop&w=600&q=80",
-    isVerified: true,
-    facilities: ["Cardio Zone", "Crossfit", "Parking", "Locker Room"],
-  },
-  {
-    id: "3",
-    name: "Iron Paradise Gym",
-    location: "Edappally, Kochi",
-    rating: 4.9,
-    reviewsCount: 210,
-    distance: "3.1 km away",
-    price: 180,
-    image:
-      "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=600&q=80",
-    isVerified: true,
-    facilities: ["Heavy Weights", "Open 24/7", "Shower", "Cardio"],
-  },
-  {
-    id: "4",
-    name: "Urban Muscle Studio",
-    location: "MG Road, Kochi",
-    rating: 4.7,
-    reviewsCount: 95,
-    distance: "3.8 km away",
-    price: 150,
-    image:
-      "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=600&q=80",
-    isVerified: true,
-    facilities: ["Yoga Studio", "AC", "Zumba", "Juice Bar"],
-  },
-];
+const mapRawGymToItem = (item: any, idx: number): GymItem => ({
+  id: item._id?.toString() || item.id || String(idx + 1),
+  slug: item.slug || item._id?.toString() || item.id || String(idx + 1),
+  name: item.gymName || item.name || "Gym",
+  location: [item.address, item.city].filter(Boolean).join(", ") || item.city || item.address || "Near You",
+  rating: item.rating ?? 4.8,
+  reviewsCount: item.reviewsCount ?? (100 + idx * 24),
+  distance: item.distance ? `${item.distance} away` : `${(1.2 + idx * 0.5).toFixed(1)} km away`,
+  price: item.dayPassPrice ?? item.price ?? 150,
+  image:
+    item.photos && item.photos.length > 0
+      ? item.photos[0]
+      : DEFAULT_FALLBACK_IMAGE,
+  isVerified: item.isApproved !== undefined ? item.isApproved : true,
+  facilities: extractFacilities(item),
+});
 
-export default function FeaturedGyms() {
+interface FeaturedGymsProps {
+  initialGyms?: GymItem[];
+}
+
+export default function FeaturedGyms({ initialGyms = [] }: FeaturedGymsProps) {
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
-  const [gyms, setGyms] = useState<GymItem[]>(DUMMY_GYMS);
+  const [gyms, setGyms] = useState<GymItem[]>(initialGyms);
   const [loading, setLoading] = useState<boolean>(false);
+  const hasAttemptedFetch = useRef(false);
 
   const toggleFavorite = (id: string) => {
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const fetchGyms = async (latitude?: number, longitude?: number) => {
-    // API call paused for local testing:
-    // try {
-    //   setLoading(true);
-    //   const res = await getNearbyGyms({ latitude, longitude, limit: 4 });
-    //   ...
-    // } catch (err) { ... }
-    setLoading(true);
-    setTimeout(() => {
-      setGyms(DUMMY_GYMS);
-      setLoading(false);
-    }, 200);
+  useEffect(() => {
+    if (initialGyms && initialGyms.length > 0) {
+      setGyms(initialGyms);
+    }
+  }, [initialGyms]);
+
+  const fetchGyms = async (latitude?: number, longitude?: number, silent = false) => {
+    try {
+      if (!silent) {
+        setLoading(true);
+      }
+      const res = await getFeaturedGyms({ latitude, longitude, limit: 4 });
+      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+        const formatted = res.data.map((item: any, idx: number) => mapRawGymToItem(item, idx));
+        setGyms(formatted);
+      } else if (!silent) {
+        setGyms([]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch dynamic featured gyms:", err);
+      if (!silent) {
+        setGyms((prev) => (prev.length > 0 ? prev : []));
+      }
+    } finally {
+      if (!silent) {
+        setLoading(false);
+      }
+    }
   };
 
   const fetchGymsBySearch = async (query: string) => {
-    // API call paused for local testing:
-    // try {
-    //   setLoading(true);
-    //   const res = await getGyms({ q: query, limit: 4 });
-    //   ...
-    // } catch (err) { ... }
-    setLoading(true);
-    setTimeout(() => {
-      const q = query.toLowerCase().trim();
-      if (!q) {
-        setGyms(DUMMY_GYMS);
+    try {
+      setLoading(true);
+      const res = await getGyms({ q: query, limit: 4 });
+      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+        const formatted = res.data.map((item: any, idx: number) => mapRawGymToItem(item, idx));
+        setGyms(formatted);
       } else {
-        const filtered = DUMMY_GYMS.filter(
-          (item) =>
-            item.name.toLowerCase().includes(q) ||
-            item.location.toLowerCase().includes(q) ||
-            item.facilities.some((f) => f.toLowerCase().includes(q))
-        );
-        setGyms(filtered);
+        setGyms([]);
       }
+    } catch (err) {
+      console.error("Failed to search gyms:", err);
+      setGyms([]);
+    } finally {
       setLoading(false);
-    }, 200);
+    }
   };
 
   useEffect(() => {
-    // Initial load
+    // Only attempt initial fetch if SSR provided no gyms and we haven't fetched yet
+    if (gyms.length === 0 && !hasAttemptedFetch.current) {
+      hasAttemptedFetch.current = true;
+      fetchGyms();
+    }
+
+    // If geolocation is available, refine gyms based on coordinates silently in background
     if (typeof window !== "undefined" && "geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          fetchGyms(latitude, longitude);
+          fetchGyms(latitude, longitude, true);
         },
         (error) => {
-          console.warn("Geolocation position unavailable, loading default nearby gyms:", error);
-          fetchGyms();
+          // If geolocation was denied or timed out, keep initial gyms
         },
         { timeout: 5000 }
       );
-    } else {
-      fetchGyms();
     }
 
-    // Listen for location changes from Hero
+    // Listen for location changes from Hero component (e.g. "Use My Current Location" button)
     const handleLocationChange = (e: Event) => {
       const customEvt = e as CustomEvent<{ latitude: number; longitude: number }>;
       if (customEvt.detail) {
-        fetchGyms(customEvt.detail.latitude, customEvt.detail.longitude);
+        fetchGyms(customEvt.detail.latitude, customEvt.detail.longitude, false);
       }
     };
 
-    // Listen for search text typing changes from Hero
+    // Listen for search text changes from Hero component
     const handleSearchChange = (e: Event) => {
       const customEvt = e as CustomEvent<{ query: string }>;
       if (customEvt.detail !== undefined) {
         const q = customEvt.detail.query;
         if (q) {
           fetchGymsBySearch(q);
-        } else {
+        } else if (gyms.length === 0) {
           fetchGyms();
         }
       }
@@ -200,7 +180,6 @@ export default function FeaturedGyms() {
       window.removeEventListener("gymon:search-changed", handleSearchChange);
     };
   }, []);
-
 
   return (
     <section className="bg-[#f8fafc] py-16 text-slate-900 relative">
@@ -263,27 +242,10 @@ export default function FeaturedGyms() {
         ) : (
           /* Cards Grid */
           <div className="relative">
-            {/* Left Arrow Button */}
-            <button
-              type="button"
-              className="hidden xl:flex absolute -left-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white border border-slate-200 items-center justify-center text-slate-600 hover:border-slate-400 shadow-md transition"
-              aria-label="Previous Gyms"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-
-            {/* Right Arrow Button */}
-            <button
-              type="button"
-              className="hidden xl:flex absolute -right-5 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white border border-slate-200 items-center justify-center text-slate-600 hover:border-slate-400 shadow-md transition"
-              aria-label="Next Gyms"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {gyms.slice(0, 4).map((gym) => {
                 const isFav = !!favorites[gym.id];
+                const gymLink = `/gyms/${encodeURIComponent(gym.slug || gym.id)}`;
 
                 return (
                   <div
@@ -292,7 +254,7 @@ export default function FeaturedGyms() {
                   >
                     {/* Image Container */}
                     <Link
-                      href={`/gyms/${gym.id}`}
+                      href={gymLink}
                       className="relative h-48 w-full bg-slate-900 overflow-hidden cursor-pointer block"
                     >
                       <img
@@ -301,8 +263,6 @@ export default function FeaturedGyms() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
-
-
 
                       {/* Wishlist Button */}
                       <button
@@ -330,7 +290,7 @@ export default function FeaturedGyms() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <Link
-                              href={`/gyms/${gym.id}`}
+                              href={gymLink}
                               className="text-lg font-black text-slate-900 group-hover:text-[#00b4d8] transition-colors leading-snug cursor-pointer block"
                             >
                               {gym.name}
@@ -346,7 +306,6 @@ export default function FeaturedGyms() {
                               <span>{gym.distance}</span>
                             </div>
                           </div>
-
                         </div>
                       </div>
 
@@ -381,7 +340,7 @@ export default function FeaturedGyms() {
 
                       {/* Action Button */}
                       <Link
-                        href={`/gyms/${gym.id}`}
+                        href={gymLink}
                         className="w-full bg-white hover:bg-slate-900 text-slate-800 hover:text-white border border-slate-200 font-bold py-2.5 px-4 rounded-xl transition-all duration-200 text-sm flex items-center justify-center gap-1.5 shadow-sm group/btn cursor-pointer"
                       >
                         <span>Request Entry</span>

@@ -8,6 +8,7 @@ import { getNearbyGyms, getGyms } from "@/app/api/client/gymApi";
 
 interface GymItem {
   id: string;
+  slug?: string;
   name: string;
   location: string;
   rating: number;
@@ -85,6 +86,7 @@ export default function SimilarGyms({
             .slice(0, 3)
             .map((item: any, idx: number) => ({
               id: item._id || item.id || String(idx + 1),
+              slug: item.slug || item._id || item.id || String(idx + 1),
               name: item.gymName || item.name || "Gym",
               location: item.address || item.city || "Near You",
               rating: item.rating || 4.7,
@@ -150,76 +152,79 @@ export default function SimilarGyms({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {similarGyms.map((gym) => (
-            <div
-              key={gym.id}
-              className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between group"
-            >
-              <div>
-                {/* Image Header */}
-                <Link href={`/gyms/${gym.id}`} className="relative aspect-[16/10] w-full bg-slate-100 overflow-hidden block">
-                  <Image
-                    src={gym.image}
-                    alt={gym.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
-                  />
+          {similarGyms.map((gym) => {
+            const gymLink = `/gyms/${encodeURIComponent(gym.slug || gym.id)}`;
+            return (
+              <div
+                key={gym.id}
+                className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between group"
+              >
+                <div>
+                  {/* Image Header */}
+                  <Link href={gymLink} className="relative aspect-[16/10] w-full bg-slate-100 overflow-hidden block">
+                    <Image
+                      src={gym.image}
+                      alt={gym.name}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500 cursor-pointer"
+                    />
 
-                </Link>
+                  </Link>
 
-                {/* Body Content */}
-                <div className="p-5 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <Link
-                      href={`/gyms/${gym.id}`}
-                      className="font-bold text-slate-900 text-lg group-hover:text-[#009fb7] transition cursor-pointer leading-snug"
-                    >
-                      {gym.name}
-                    </Link>
-                    {gym.facilities?.find((f) => f.toLowerCase().includes("ladies") || f.toLowerCase().includes("women")) && (
-                      <span className="bg-amber-300 text-slate-900 text-[11px] font-extrabold px-2.5 py-0.5 rounded-md shadow-xs border border-amber-400/80 whitespace-nowrap capitalize shrink-0">
-                        ladies only
+                  {/* Body Content */}
+                  <div className="p-5 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <Link
+                        href={gymLink}
+                        className="font-bold text-slate-900 text-lg group-hover:text-[#009fb7] transition cursor-pointer leading-snug"
+                      >
+                        {gym.name}
+                      </Link>
+                      {gym.facilities?.find((f) => f.toLowerCase().includes("ladies") || f.toLowerCase().includes("women")) && (
+                        <span className="bg-amber-300 text-slate-900 text-[11px] font-extrabold px-2.5 py-0.5 rounded-md shadow-xs border border-amber-400/80 whitespace-nowrap capitalize shrink-0">
+                          ladies only
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                      <span className="flex items-center gap-1 text-slate-900 font-bold">
+                        <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                        {gym.rating}
+                        <span className="text-slate-500 font-normal">
+                          ({gym.reviewsCount})
+                        </span>
                       </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                    <span className="flex items-center gap-1 text-slate-900 font-bold">
-                      <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                      {gym.rating}
-                      <span className="text-slate-500 font-normal">
-                        ({gym.reviewsCount})
+                      <span className="text-slate-300">•</span>
+                      <span className="flex items-center gap-1 text-slate-500">
+                        <Footprints className="w-3.5 h-3.5 text-slate-400" />
+                        {gym.distance}
                       </span>
-                    </span>
-                    <span className="text-slate-300">•</span>
-                    <span className="flex items-center gap-1 text-slate-500">
-                      <Footprints className="w-3.5 h-3.5 text-slate-400" />
-                      {gym.distance}
-                    </span>
-                  </div>
+                    </div>
 
-                  <div className="pt-2 flex items-baseline gap-1">
-                    <span className="text-xl font-black text-slate-900">
-                      ₹{gym.price}
-                    </span>
-                    <span className="text-xs text-slate-500 font-medium">
-                      / Entry
-                    </span>
+                    <div className="pt-2 flex items-baseline gap-1">
+                      <span className="text-xl font-black text-slate-900">
+                        ₹{gym.price}
+                      </span>
+                      <span className="text-xs text-slate-500 font-medium">
+                        / Entry
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Card Action Footer */}
-              <div className="p-5 pt-0">
-                <Link
-                  href={`/gyms/${gym.id}`}
-                  className="w-full bg-white hover:bg-slate-900 text-slate-800 hover:text-white border border-slate-200 font-bold py-2.5 px-4 rounded-xl transition-all duration-200 text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                >
-                  <span>View Details</span>
-                </Link>
+                {/* Card Action Footer */}
+                <div className="p-5 pt-0">
+                  <Link
+                    href={gymLink}
+                    className="w-full bg-white hover:bg-slate-900 text-slate-800 hover:text-white border border-slate-200 font-bold py-2.5 px-4 rounded-xl transition-all duration-200 text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                  >
+                    <span>View Details</span>
+                  </Link>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
